@@ -1,0 +1,160 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  chat-telegram
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 3
+    MemorySize: 128
+    Handler: app.lambda_handler
+    Runtime: python3.9
+    Tracing: Active
+
+  Api:
+    TracingEnabled: true
+Parameters:
+    ConnectInstanceId:
+      Type: String
+    ContactFlowId:
+      Type: String
+    TelegramToken:
+      Type: String
+
+Resources:
+  ContactChatTable:
+    Type: AWS::DynamoDB::Table
+    Properties: 
+      TableName: ChatTeleSessionMapping
+      AttributeDefinitions:
+        - 
+          AttributeName: "ContactId"
+          AttributeType: "S"
+        - 
+          AttributeName: "ChatId"
+          AttributeType: "S"         
+      KeySchema: 
+        - 
+          AttributeName: "ContactId"
+          KeyType: "HASH"
+      ProvisionedThroughput: 
+        ReadCapacityUnits: "5"
+        WriteCapacityUnits: "5"
+      GlobalSecondaryIndexes:
+        - 
+          IndexName: ChatId-index
+          KeySchema:
+            - 
+              AttributeName: "ChatId"
+              KeyType: "HASH"
+          Projection: 
+            NonKeyAttributes: 
+              - "ConnectionToken"
+            ProjectionType: "INCLUDE"
+          ProvisionedThroughput: 
+            ReadCapacityUnits: "5"
+            WriteCapacityUnits: "5"
+
+  SnsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: connect-chat-streaming
+
+  InboundFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: inbound/
+      Environment:
+        Variables:
+          INSTANCE_ID: !Ref ConnectInstanceId
+          CONTACT_FLOW_ID: !Ref ContactFlowId
+          STREAMING_SNS_ARN: !Ref SnsTopic
+          TABLE_NAME: !Ref ContactChatTable
+      Events:
+        InboundApi:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /inbound
+            Method: post
+      Policies:
+        - AWSLambdaExecute
+        - AmazonDynamoDBFullAccess
+        - AmazonConnect_FullAccess
+
+  OutboundFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: outbound/
+      Environment:
+        Variables:
+          TELEGRAM_TOKEN: !Ref TelegramToken
+          TABLE_NAME: !Ref ContactChatTable
+      Events:
+        SNSEvent:
+          Type: SNS
+          Properties:
+            Topic: !Ref SnsTopic
+            FilterPolicy:
+              Type:
+                - "MESSAGE"
+              ParticipantRole:
+                - "AGENT"
+      Policies:
+        - AWSLambdaExecute
+        - AmazonDynamoDBFullAccess
+
+
+  DeleteConnectionFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: delete_connection/
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ContactChatTable
+      Events:
+        SNSEvent:
+          Type: SNS
+          Properties:
+            Topic: !Ref SnsTopic
+            FilterPolicy:
+              Type:
+                - "EVENT"
+              ParticipantRole:
+                - "AGENT"
+              ContentType:
+                - "application/vnd.amazonaws.connect.event.participant.left"
+      Policies:
+        - AWSLambdaExecute
+        - AmazonDynamoDBFullAccess
+
+
+  ApplicationResourceGroup:
+    Type: AWS::ResourceGroups::Group
+    Properties:
+      Name:
+        Fn::Join:
+        - ''
+        - - ApplicationInsights-SAM-
+          - Ref: AWS::StackName
+      ResourceQuery:
+        Type: CLOUDFORMATION_STACK_1_0
+  ApplicationInsightsMonitoring:
+    Type: AWS::ApplicationInsights::Application
+    Properties:
+      ResourceGroupName:
+        Fn::Join:
+        - ''
+        - - ApplicationInsights-SAM-
+          - Ref: AWS::StackName
+      AutoConfigurationEnabled: 'true'
+    DependsOn: ApplicationResourceGroup
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  InboundWebhookApi:
+    Description: "API Gateway endpoint URL for telegram bot to set webhook"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/inbound/"
+
