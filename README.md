@@ -4,7 +4,7 @@ Amazon Connect Chat integration with Telegram bot
 
 ## Architecture
 
-[Image: images/ConectChat-Telgeram.png]
+![Image: images/ConectChat-Telgeram.png]
 ## Deployment
 
 1. Create a Telegram bot, guided by @botfather in Telegram, and get your bot TOKEN
