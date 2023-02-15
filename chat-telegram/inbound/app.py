@@ -10,10 +10,6 @@ connect = boto3.client('connect')
 participant = boto3.client('connectparticipant')
 dynamodb = boto3.resource('dynamodb')
 
-# instance_id = '39bcdf01-1b4a-4c8f-8fb6-330e2f9960b7'
-# contact_flow_id = 'f13177bf-bc01-4eb9-9104-864623cf3c2a'
-# streaming_sns_arn = 'arn:aws:sns:ap-northeast-1:746872035549:chat-streaming'
-# table_name = 'ConnectChat-TelegramBot'
 table_name = os.environ['TABLE_NAME']
 instance_id = os.environ['INSTANCE_ID']
 streaming_sns_arn = os.environ['STREAMING_SNS_ARN']
