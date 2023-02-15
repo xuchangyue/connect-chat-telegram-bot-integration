@@ -19,6 +19,9 @@
 # default config file
 *samconfig.toml
 
+# aws sam 
+.aws-sam/*
+
 ### OSX ###
 *.DS_Store
 .AppleDouble

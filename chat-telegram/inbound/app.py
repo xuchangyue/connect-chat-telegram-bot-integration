@@ -3,7 +3,6 @@ import os
 import sys
 import boto3
 from pprint import pprint
-sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), "./vendored"))
 from boto3.dynamodb.conditions import Key
 
 
@@ -39,12 +38,11 @@ def start_chat(first_message, username, chat_id):
             'Content': first_message
         }
     )
-
+    pprint(connect_response)
     participant_id = connect_response['ParticipantId']
     participant_token = connect_response['ParticipantToken']
     contact_id = connect_response['ContactId']
-    pprint(connect_response)
-
+    
     streaming_response = connect.start_contact_streaming(
         InstanceId=instance_id,
         ContactId=contact_id,
@@ -78,7 +76,6 @@ def start_chat(first_message, username, chat_id):
     
 def lambda_handler(event, context):
     try:
-        #pprint(event)
         
         data = json.loads(event["body"])
         message = str(data["message"]["text"])

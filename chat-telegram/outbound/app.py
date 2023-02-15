@@ -3,7 +3,6 @@ import os
 import sys
 import boto3
 from pprint import pprint
-# sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), "./vendored"))
 import requests
 from boto3.dynamodb.conditions import Key
 
@@ -17,7 +16,6 @@ table = dynamodb.Table(table_name)
 
 def lambda_handler(event, context):
     try:
-        pprint(event)
         agent_message = json.loads(event['Records'][0]['Sns']['Message'])
         pprint(agent_message)
         contact_id = agent_message['ContactId']
