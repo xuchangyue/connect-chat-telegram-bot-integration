@@ -17,10 +17,18 @@ Globals:
 Parameters:
     ConnectInstanceId:
       Type: String
+      Description: The identifier of the Amazon Connect instance. You can find the instanceId in the ARN of the instance.
+      Default: 77xxxx71-xxxx-xxxx-xxxx-4d5xxxxd2b6
     ContactFlowId:
       Type: String
+      Description: The identifier of the flow. Under the ARN (Amazon Resource Number), copy everything after contact-flow/.
+      Default: ddxxxxec-xxxx-xxxx-xxxx-7594xxxx6aea
     TelegramToken:
       Type: String
+      Description: Telegram bot token to access Telegram API
+      Default: 5xxxxxx:AAxxxxxxxxxxxxxxxxx
+
+
 
 Resources:
   ContactChatTable:
